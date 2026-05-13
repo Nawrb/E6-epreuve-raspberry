@@ -129,24 +129,10 @@ Outil de test permettant de vérifier l'alignement de la caméra et le bon fonct
 
 ---
 
-## Installation
+## Se connecter
 
 ```bash
-# Cloner le dépôt
-git clone https://github.com/<votre-compte>/E6-epreuve-raspberry.git
-cd E6-epreuve-raspberry
-
-# Installer les dépendances
-pip install opencv-contrib-python picamera2 requests
-
-# Enrôler un nouvel utilisateur
-python photo.py
-
-# Entraîner le modèle
-python train.py
-
-# Lancer l'application
-python login.py
+lancer le login.py et utiliser l'utilisateur lwald
 ```
 
 ---
@@ -165,16 +151,3 @@ sqlite3 KALIEMIE.db
 SELECT * FROM logs;
 ```
 
----
-
-## Fichiers Générés
-
-| Fichier | Généré par | Description |
-|---------|-----------|-------------|
-| `trainer.yml` | `train.py` | Modèle LBPH persisté |
-| `KALIEMIE.db` | `insertTable.py` | Base de données des logs |
-| `dataset/<user>/` | `photo.py` | Photos d'entraînement par utilisateur |
-
----
-
-*Projet réalisé dans le cadre de l'épreuve E6 — BTS SIO*
