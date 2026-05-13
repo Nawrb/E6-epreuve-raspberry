@@ -56,6 +56,12 @@ Point d'entrée du programme. Gère l'interface graphique (Tkinter) et orchestre
 - Ordonnancement des étapes suivantes selon la réponse du serveur
 - Gestion des erreurs de saisie et de connectivité réseau
 
+## Se connecter
+
+```bash
+lancer le login.py et utiliser l'utilisateur lwald
+```
+
 ---
 
 ### `reco.py` — Moteur de Reconnaissance
@@ -126,14 +132,6 @@ Outil de test permettant de vérifier l'alignement de la caméra et le bon fonct
 
 > **Pourquoi LBPH ?**
 > Cet algorithme a été retenu pour son efficacité sur des systèmes embarqués à ressources limitées. Il offre un bon compromis entre précision de reconnaissance et faible empreinte mémoire/CPU.
-
----
-
-## Se connecter
-
-```bash
-lancer le login.py et utiliser l'utilisateur lwald
-```
 
 ---
 
