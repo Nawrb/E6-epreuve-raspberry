@@ -1,66 +1,180 @@
-# E6-epreuve-raspberry
+# E6-Épreuve — Authentification MFA sur Raspberry Pi
 
-Ce projet présente une solution d'authentification multi-facteurs (MFA) déployée sur Raspberry Pi. Il sécurise l'accès à une application métier (KALIEMIE) en combinant une authentification logicielle via API et une validation biométrique par reconnaissance faciale.
+> Solution d'authentification multi-facteurs déployée sur Raspberry Pi, sécurisant l'accès à l'application **KALIEMIE** via une double validation : identifiants API + reconnaissance faciale biométrique.
 
-Architecture du projet
-Le système repose sur une architecture modulaire où chaque script remplit une fonction précise au sein de la chaîne de sécurité.
+---
 
-login.py (Interface Principale)
-Il s'agit du point d'entrée du programme. Ce script gère l'interface graphique via Tkinter et assure la première étape de l'authentification :
+## Sommaire
 
-Interrogation d'une API REST externe pour valider les identifiants saisis.
+- [Aperçu](#aperçu)
+- [Architecture](#architecture)
+- [Modules](#modules)
+- [Spécifications techniques](#spécifications-techniques)
+- [Installation](#installation)
+- [Consultation des logs](#consultation-des-logs)
 
-Ordonnancement des étapes suivantes en fonction de la réponse du serveur.
+---
 
-Gestion des erreurs de saisie et de connectivité réseau.
+## Aperçu
 
-reco.py (Moteur de reconnaissance)
-Ce script contient la logique de traitement d'image pour la phase de biométrie :
+Ce projet implémente un système MFA (Multi-Factor Authentication) embarqué sur Raspberry Pi. L'accès à l'application métier KALIEMIE est conditionné par deux couches de sécurité successives :
 
-Chargement du modèle de reconnaissance LBPH (trainer.yml).
+1. **Validation des identifiants** via une API REST externe
+2. **Vérification biométrique** par reconnaissance faciale en temps réel (algorithme LBPH)
 
-Analyse du flux vidéo en temps réel pour identifier l'utilisateur attendu.
+---
 
-Implémentation d'un délai de sécurité (timeout) de 30 secondes.
+## Architecture
 
-Retour de codes d'état ("OK", "TIMEOUT", "ANNULER") vers le script principal.
+Le système repose sur une architecture modulaire : chaque script remplit une fonction précise et indépendante au sein de la chaîne de sécurité.
 
-photo.py (Enrôlement biométrique)
-Utilisé lorsqu'un nouvel utilisateur est détecté ou qu'une mise à jour du profil est nécessaire :
+```
+E6-epreuve-raspberry/
+│
+├── login.py          # Point d'entrée — Interface graphique & orchestration
+├── reco.py           # Moteur de reconnaissance faciale (LBPH)
+├── photo.py          # Enrôlement biométrique — Capture de photos
+├── train.py          # Entraînement du modèle IA → trainer.yml
+├── insertTable.py    # Journalisation des événements → KALIEMIE.db
+├── camDetection.py   # Outil de diagnostic caméra
+│
+├── trainer.yml       # Modèle LBPH persisté (généré par train.py)
+├── KALIEMIE.db       # Base de données SQLite des logs
+└── dataset/          # Répertoires nominatifs des photos d'entraînement
+    └── <nom_utilisateur>/
+```
 
-Capture d'un échantillon de 30 photographies.
+---
 
-Option d'enrôlement spécifique pour les porteurs de lunettes (60 captures).
+## Modules
 
-Stockage structuré des images dans des répertoires nominatifs pour l'apprentissage.
+### `login.py` — Interface Principale
 
-train.py (Apprentissage automatique)
-Ce script assure la maintenance du modèle d'Intelligence Artificielle :
+Point d'entrée du programme. Gère l'interface graphique (Tkinter) et orchestre l'ensemble du flux d'authentification.
 
-Parcours récursif du répertoire de stockage des photographies.
+- Interrogation d'une API REST externe pour valider les identifiants saisis
+- Ordonnancement des étapes suivantes selon la réponse du serveur
+- Gestion des erreurs de saisie et de connectivité réseau
 
-Extraction des caractéristiques faciales et conversion en données numériques.
+---
 
-Génération et mise à jour du fichier de persistance trainer.yml.
+### `reco.py` — Moteur de Reconnaissance
 
-insertTable.py (Journalisation)
-Responsable de la traçabilité des événements sur la base de données locale SQLite :
+Cœur du système biométrique. Traite le flux vidéo en temps réel pour identifier l'utilisateur.
 
-Enregistrement systématique des tentatives de connexion.
+- Chargement du modèle LBPH depuis `trainer.yml`
+- Analyse du flux vidéo en temps réel
+- Délai de sécurité (**timeout de 30 secondes**)
+- Retourne un code d'état vers le script principal :
 
-Stockage de l'horodatage, de l'identifiant utilisateur et du résultat de l'authentification (succès ou motif d'échec).
+| Code | Signification |
+|------|---------------|
+| `OK` | Utilisateur reconnu avec succès |
+| `TIMEOUT` | Délai de 30 s dépassé sans reconnaissance |
+| `ANNULER` | Interruption manuelle de l'utilisateur |
 
-camDetection.py (Outil de diagnostic)
-Fichier de test permettant de vérifier l'alignement de la caméra et le bon fonctionnement des Haar Cascades (détection de visage) sans activer les fonctions de reconnaissance ou de base de données.
+---
 
-Spécifications techniques
-Matériel : Raspberry Pi, Camera Module (libcamera/Picamera2).
+### `photo.py` — Enrôlement Biométrique
 
-Langage : Python 3.
+Utilisé lors de l'ajout d'un nouvel utilisateur ou d'une mise à jour de profil.
 
-Bibliothèques principales : OpenCV (Traitement d'image), SQLite3 (Base de données), Requests (API REST), Tkinter (GUI).
+- Capture d'un échantillon de **30 photographies**
+- Option dédiée aux porteurs de lunettes (**60 captures**)
+- Stockage structuré dans des répertoires nominatifs pour l'apprentissage
 
-Algorithme : Local Binary Patterns Histograms (LBPH), choisi pour son efficacité sur des systèmes embarqués à ressources limitées.
+---
 
-Consultation des logs
-Les données de connexion sont stockées dans le fichier KALIEMIE.db. Pour auditer les accès via le terminal :
+### `train.py` — Entraînement du Modèle
+
+Assure la maintenance et la mise à jour du modèle d'intelligence artificielle.
+
+- Parcours récursif du répertoire de photos
+- Extraction des caractéristiques faciales et conversion en données numériques
+- Génération et mise à jour du fichier `trainer.yml`
+
+---
+
+### `insertTable.py` — Journalisation
+
+Garantit la traçabilité complète des événements d'authentification dans la base SQLite.
+
+Chaque tentative enregistre :
+- Horodatage
+- Identifiant utilisateur
+- Résultat (succès ou motif d'échec)
+
+---
+
+### `camDetection.py` — Diagnostic Caméra
+
+Outil de test permettant de vérifier l'alignement de la caméra et le bon fonctionnement des **Haar Cascades** (détection de visage), sans activer les fonctions de reconnaissance ni d'écriture en base de données.
+
+---
+
+## Spécifications Techniques
+
+| Composant | Détail |
+|-----------|--------|
+| **Matériel** | Raspberry Pi + Camera Module (libcamera / Picamera2) |
+| **Langage** | Python 3 |
+| **Interface graphique** | Tkinter |
+| **Traitement d'image** | OpenCV |
+| **Base de données** | SQLite3 |
+| **Communication API** | Requests (REST) |
+| **Algorithme IA** | LBPH — Local Binary Patterns Histograms |
+
+> **Pourquoi LBPH ?**
+> Cet algorithme a été retenu pour son efficacité sur des systèmes embarqués à ressources limitées. Il offre un bon compromis entre précision de reconnaissance et faible empreinte mémoire/CPU.
+
+---
+
+## Installation
+
+```bash
+# Cloner le dépôt
+git clone https://github.com/<votre-compte>/E6-epreuve-raspberry.git
+cd E6-epreuve-raspberry
+
+# Installer les dépendances
+pip install opencv-contrib-python picamera2 requests
+
+# Enrôler un nouvel utilisateur
+python photo.py
+
+# Entraîner le modèle
+python train.py
+
+# Lancer l'application
+python login.py
+```
+
+---
+
+## Consultation des Logs
+
+Les données de connexion sont stockées dans `KALIEMIE.db`. Pour auditer les accès via le terminal :
+
+```bash
+sqlite3 KALIEMIE.db
+```
+
+```sql
+.mode column
+.headers on
+SELECT * FROM logs;
+```
+
+---
+
+## Fichiers Générés
+
+| Fichier | Généré par | Description |
+|---------|-----------|-------------|
+| `trainer.yml` | `train.py` | Modèle LBPH persisté |
+| `KALIEMIE.db` | `insertTable.py` | Base de données des logs |
+| `dataset/<user>/` | `photo.py` | Photos d'entraînement par utilisateur |
+
+---
+
+*Projet réalisé dans le cadre de l'épreuve E6 — BTS SIO*
